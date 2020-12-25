@@ -9,3 +9,4 @@
 #addSource { margin-left: 85px; width: 200px; }
 
 .sourceTitle, .sourceLink { display: inline-block }
+.sourcesMessage { color: #999; padding-left: 85px; font-style: italic; }

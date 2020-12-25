@@ -1,4 +1,3 @@
-
 var sources = []
 
 function getRemoveHandler(div) {
@@ -26,6 +25,9 @@ function displayExistingSources() {
   
   var sourcesElement = document.getElementById('existingSources');
   sourcesElement.innerHTML = '';
+  if (sources.length == 0) {
+    sourcesElement.innerHTML = '<div class="sourcesMessage">No bookmark sources configured...<div>';
+  }
   for (var i = 0; i < sources.length; i++) {
     var source = sources[i];
     var div = document.createElement("div");
@@ -50,59 +52,15 @@ document.addEventListener('DOMContentLoaded', function() {
     displayExistingSources();
   });
 
-  
-  function getJson(url, callback) {
-    var xmlHttp = new XMLHttpRequest();
-    xmlHttp.onreadystatechange = function() {
-      if (xmlHttp.readyState == 4 && xmlHttp.status == 200) {
-        var json = JSON.parse(xmlHttp.responseText);
-        callback(json);
-      }
-    };
-    xmlHttp.open("GET", url, true);
-    xmlHttp.send(null);
-  }
-
-  function processBookmark(bookmark, parentId) {
-    if (bookmark.url) {  
-      chrome.bookmarks.create({'parentId': parentId, 'title': bookmark.name, 'url': bookmark.url});
-    } else if (bookmark.folder) {
-      chrome.bookmarks.create({'parentId': parentId, 'title': bookmark.name}, (bookmarkTreeNode) => {
-        for (var i = 0; i < bookmark.folder.length; i++) {
-          processBookmark(bookmark.folder[i], bookmarkTreeNode.id);
-	      }
-      });
-    }
-  }
-  
-  function updateBookmarks(response) {
-    var managedBookmarks = response['bookmarks'];
-    chrome.bookmarks.getSubTree("1", (bar) => {
-      var existingBookmarks = new Map(bar[0].children.map((bm) => [bm.title, bm.id]));
-      for (var i = 0; i < managedBookmarks.length; i++) {
-      var bookmarkToAdd = managedBookmarks[i];
-      if (existingBookmarks.has(bookmarkToAdd.name)) {
-        chrome.bookmarks.removeTree(existingBookmarks.get(bookmarkToAdd.name));
-      }
-      processBookmark(bookmarkToAdd, "1");
-      }
-    });
-  }
-
   function addSource() {
     var url = urlInput.value;
     if (url) {
       var tempTitle = url.split('/').pop();
-      var newRow = {'title': tempTitle, 'url': url};
-      sources.push(newRow);
+      var newSource = {'title': tempTitle, 'url': url};
+      sources.push(newSource);
       urlInput.value = '';
       displayExistingSources();
-      getJson(url, (json) => {
-        newRow['title'] = json.name;
-        displayExistingSources();
-        updateBookmarks(json);
-        chrome.storage.sync.set({'bookmarkSources': sources})
-      });
+      processBookmarkSource(newSource, displayExistingSources);
     }
   }
 
