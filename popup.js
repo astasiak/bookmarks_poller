@@ -9,6 +9,13 @@ function displayExistingSources() {
     var div = document.createElement("div");
     div.classList.add("source")
     div.innerHTML = `<button type="button" class="sourceRemove">delete</button><div class="sourceTitle">${source.title}</div><div class="sourceLink">${source.url}</div>`;
+    div.getElementsByClassName('sourceRemove')[0].addEventListener('click', () => {
+      sources = sources.filter(function(item) {
+        return item !== source
+      });
+      chrome.storage.sync.set({'bookmarkSources': sources})
+      displayExistingSources();
+    });
     sourcesElement.appendChild(div);
   }
 }
