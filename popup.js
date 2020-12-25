@@ -1,17 +1,37 @@
 
+var sources = []
+
+function displayExistingSources() {
+  var sourcesElement = document.getElementById('existingSources');
+  sourcesElement.innerHTML = '';
+  for (var i = 0; i < sources.length; i++) {
+    var source = sources[i];
+    var div = document.createElement("div");
+    div.classList.add("source")
+    div.innerHTML = `<button type="button" class="sourceRemove">delete</button><div class="sourceTitle">${source.title}</div><div class="sourceLink">${source.url}</div>`;
+    sourcesElement.appendChild(div);
+  }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
-  var updateButton = document.getElementById('updateBookmarks');
+  var addButton = document.getElementById('addSource');
   var urlInput = document.getElementById('urlInput');
 
+  chrome.storage.sync.get(['bookmarkSources'], function(result) {
+    sources = result['bookmarkSources'] || [];
+    displayExistingSources();
+  });
+
   
-  function getJson() {
+  function getJson(url, callback) {
     var xmlHttp = new XMLHttpRequest();
     xmlHttp.onreadystatechange = function() {
       if (xmlHttp.readyState == 4 && xmlHttp.status == 200) {
-        updateBookmarks(xmlHttp.responseText);
+        var json = JSON.parse(xmlHttp.responseText);
+        callback(json);
       }
     };
-    xmlHttp.open("GET", urlInput.value, true);
+    xmlHttp.open("GET", url, true);
     xmlHttp.send(null);
   }
 
@@ -28,8 +48,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   function updateBookmarks(response) {
-    var json = JSON.parse(response);
-    var managedBookmarks = json['bookmarks'];
+    var managedBookmarks = response['bookmarks'];
     chrome.bookmarks.getSubTree("1", (bar) => {
       var existingBookmarks = new Map(bar[0].children.map((bm) => [bm.title, bm.id]));
       for (var i = 0; i < managedBookmarks.length; i++) {
@@ -42,11 +61,19 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  chrome.storage.sync.get(['bookmarksUrl'], function(result) {
-    urlInput.value = result['bookmarksUrl'];
-  });
-  updateButton.addEventListener('click', function() {
-    chrome.storage.sync.set({'bookmarksUrl': urlInput.value});
-    getJson();
-  });
+  function addSource() {
+    var url = urlInput.value;
+    var tempTitle = url.split('/').pop();
+    var newRow = {'title': tempTitle, 'url': url};
+    sources.push(newRow);
+    displayExistingSources();
+    getJson(url, (json) => {
+      newRow['title'] = json.name;
+      displayExistingSources();
+      updateBookmarks(json);
+      chrome.storage.sync.set({'bookmarkSources': sources})
+    });
+  }
+
+  addButton.addEventListener('click', addSource);
 });

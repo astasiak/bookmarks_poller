@@ -1,11 +1,15 @@
 <!doctype html>
 <html>
   <head>
-    <title>GTmetrix Analyzer</title>
+    <link rel="stylesheet" href="popup.css">
+    <title>Bookmarks poller</title>
     <script src="popup.js"></script>
   </head>
   <body>
-    <input id="urlInput" type="text"/>
-    <button id="updateBookmarks">Update bookmarks</button>
+    <div class="main">
+      <div id="existingSources"></div>
+      <button id="addSource">Add bookmarks source</button>
+      <input id="urlInput" type="text"/>
+    </div>
   </body>
 </html>
