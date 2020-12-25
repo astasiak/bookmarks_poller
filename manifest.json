@@ -11,7 +11,6 @@
   },
   "permissions": [
     "https://*/",
-    "activeTab",
     "bookmarks",
     "storage"
   ]
