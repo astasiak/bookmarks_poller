@@ -3,5 +3,4 @@ chrome.runtime.onInstalled.addListener(function () {
 });
 chrome.alarms.onAlarm.addListener(function () {
     console.log('Hello Alarms!');
-    console.log(sources);
 });

@@ -1,4 +1,3 @@
-var sources = []
 
 function getJson(url, callback) {
   var xmlHttp = new XMLHttpRequest();
@@ -38,14 +37,8 @@ function updateBookmarks(response) {
   });
 }
 
-function processBookmarkSource(source, callback) {
-  getJson(source.url, (json) => {
-    source['title'] = json.name;
-    updateBookmarks(json);
-    chrome.storage.sync.set({'bookmarkSources': sources});
-    if (callback) {
-      callback();
-    }
+function loadSources(callback) {
+  chrome.storage.sync.get(['bookmarkSources'], function(result) {
+    callback(result['bookmarkSources']);
   });
 }
-

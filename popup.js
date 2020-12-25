@@ -1,4 +1,4 @@
-var sources = []
+var sourcesCache = []
 
 function getRemoveHandler(div) {
   return () => {
@@ -13,10 +13,10 @@ function getRemoveHandler(div) {
 
 function getRemoveConfirmHandler(source) {
   return () => {
-    sources = sources.filter(function(item) {
+    sourcesCache = sourcesCache.filter(function(item) {
       return item !== source
     });
-    chrome.storage.sync.set({'bookmarkSources': sources})
+    chrome.storage.sync.set({'bookmarkSources': sourcesCache})
     displayExistingSources();
   }
 }
@@ -25,11 +25,11 @@ function displayExistingSources() {
   
   var sourcesElement = document.getElementById('existingSources');
   sourcesElement.innerHTML = '';
-  if (sources.length == 0) {
+  if (sourcesCache.length == 0) {
     sourcesElement.innerHTML = '<div class="sourcesMessage">No bookmark sources configured...<div>';
   }
-  for (var i = 0; i < sources.length; i++) {
-    var source = sources[i];
+  for (var i = 0; i < sourcesCache.length; i++) {
+    var source = sourcesCache[i];
     var div = document.createElement("div");
     div.classList.add("source")
     div.innerHTML = `
@@ -47,8 +47,8 @@ document.addEventListener('DOMContentLoaded', function() {
   var addButton = document.getElementById('addSource');
   var urlInput = document.getElementById('urlInput');
 
-  chrome.storage.sync.get(['bookmarkSources'], function(result) {
-    sources = result['bookmarkSources'] || [];
+  loadSources((sources) => {
+    sourcesCache = sources;
     displayExistingSources();
   });
 
@@ -57,10 +57,15 @@ document.addEventListener('DOMContentLoaded', function() {
     if (url) {
       var tempTitle = url.split('/').pop();
       var newSource = {'title': tempTitle, 'url': url};
-      sources.push(newSource);
+      sourcesCache.push(newSource);
       urlInput.value = '';
       displayExistingSources();
-      processBookmarkSource(newSource, displayExistingSources);
+      getJson(newSource.url, (json) => {
+        newSource['title'] = json.name;
+        updateBookmarks(json);
+        chrome.storage.sync.set({'bookmarkSources': sourcesCache});
+        displayExistingSources();
+      });
     }
   }
 
