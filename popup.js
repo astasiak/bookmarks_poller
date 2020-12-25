@@ -16,7 +16,7 @@ function getRemoveConfirmHandler(source) {
     sourcesCache = sourcesCache.filter(function(item) {
       return item !== source
     });
-    chrome.storage.sync.set({'bookmarkSources': sourcesCache})
+    saveSources(sourcesCache);
     displayExistingSources();
   }
 }
@@ -62,8 +62,8 @@ document.addEventListener('DOMContentLoaded', function() {
       displayExistingSources();
       getJson(newSource.url, (json) => {
         newSource['title'] = json.name;
-        updateBookmarks(json);
-        chrome.storage.sync.set({'bookmarkSources': sourcesCache});
+        synchronizeBookmarkSource(json);
+        saveSources(sourcesCache);
         displayExistingSources();
       });
     }

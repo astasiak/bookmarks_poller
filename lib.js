@@ -11,19 +11,19 @@ function getJson(url, callback) {
   xmlHttp.send(null);
 }
 
-function processBookmark(bookmark, parentId) {
+function synchronizeBookmark(bookmark, parentId) {
   if (bookmark.url) {  
     chrome.bookmarks.create({'parentId': parentId, 'title': bookmark.name, 'url': bookmark.url});
   } else if (bookmark.folder) {
     chrome.bookmarks.create({'parentId': parentId, 'title': bookmark.name}, (bookmarkTreeNode) => {
       for (var i = 0; i < bookmark.folder.length; i++) {
-        processBookmark(bookmark.folder[i], bookmarkTreeNode.id);
+        synchronizeBookmark(bookmark.folder[i], bookmarkTreeNode.id);
       }
     });
   }
 }
   
-function updateBookmarks(response) {
+function synchronizeBookmarkSource(response) {
   var managedBookmarks = response['bookmarks'];
   chrome.bookmarks.getSubTree("1", (bar) => {
     var existingBookmarks = new Map(bar[0].children.map((bm) => [bm.title, bm.id]));
@@ -32,7 +32,7 @@ function updateBookmarks(response) {
       if (existingBookmarks.has(bookmarkToAdd.name)) {
         chrome.bookmarks.removeTree(existingBookmarks.get(bookmarkToAdd.name));
       }
-      processBookmark(bookmarkToAdd, "1");
+      synchronizeBookmark(bookmarkToAdd, "1");
     }
   });
 }
@@ -41,4 +41,8 @@ function loadSources(callback) {
   chrome.storage.sync.get(['bookmarkSources'], function(result) {
     callback(result['bookmarkSources']);
   });
+}
+
+function saveSources(sources) {
+  chrome.storage.sync.set({'bookmarkSources': sources});
 }
