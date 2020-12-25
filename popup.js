@@ -7,8 +7,9 @@ document.addEventListener('DOMContentLoaded', function() {
   function getJson() {
     var xmlHttp = new XMLHttpRequest();
     xmlHttp.onreadystatechange = function() {
-        if (xmlHttp.readyState == 4 && xmlHttp.status == 200)
-            updateBookmarks(xmlHttp.responseText);
+      if (xmlHttp.readyState == 4 && xmlHttp.status == 200) {
+        updateBookmarks(xmlHttp.responseText);
+      }
     };
     xmlHttp.open("GET", urlInput.value, true);
     xmlHttp.send(null);
@@ -21,7 +22,7 @@ document.addEventListener('DOMContentLoaded', function() {
       chrome.bookmarks.create({'parentId': parentId, 'title': bookmark.name}, (bookmarkTreeNode) => {
         for (var i = 0; i < bookmark.folder.length; i++) {
           processBookmark(bookmark.folder[i], bookmarkTreeNode.id);
-	}
+	      }
       });
     }
   }
@@ -32,11 +33,11 @@ document.addEventListener('DOMContentLoaded', function() {
     chrome.bookmarks.getSubTree("1", (bar) => {
       var existingBookmarks = new Map(bar[0].children.map((bm) => [bm.title, bm.id]));
       for (var i = 0; i < managedBookmarks.length; i++) {
-	var bookmarkToAdd = managedBookmarks[i];
-	if (existingBookmarks.has(bookmarkToAdd.name)) {
-          chrome.bookmarks.removeTree(existingBookmarks.get(bookmarkToAdd.name));
-	}
-        processBookmark(bookmarkToAdd, "1");
+      var bookmarkToAdd = managedBookmarks[i];
+      if (existingBookmarks.has(bookmarkToAdd.name)) {
+        chrome.bookmarks.removeTree(existingBookmarks.get(bookmarkToAdd.name));
+      }
+      processBookmark(bookmarkToAdd, "1");
       }
     });
   }
