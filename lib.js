@@ -11,6 +11,25 @@ function getJson(url, callback) {
   xmlHttp.send(null);
 }
 
+function checkBookmarkExists(bookmarkId, callback) {
+  function containsBookmark(node) {
+    if (node.id == bookmarkId) {
+      return true;
+    }
+    if (node.children) {
+      for (child of node.children) {
+        if(containsBookmark(child)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+  chrome.bookmarks.getSubTree('1', (trees) =>  {
+    callback(containsBookmark(trees[0]));
+  });
+}
+
 function createBookmark(bookmark, parentId) {
   if (bookmark.url) {  
     chrome.bookmarks.create({'parentId': parentId, 'title': bookmark.name, 'url': bookmark.url});
@@ -30,8 +49,10 @@ function fillSourceBookmarkId(source, callback) {
     });
   }
   if (source.bookmarkId) {
-    chrome.bookmarks.get(source.bookmarkId, (bookmark) => {
-      if (!bookmark) {
+    checkBookmarkExists(source.bookmarkId, (bookmarkFound) => {
+      if (bookmarkFound) {
+        callback(source);
+      } else {
         var oldBookmarkId = source.bookmarkId;
         createBookmarkFolder((bookmarkId) => {
           source.bookmarkId = bookmarkId;
@@ -39,8 +60,6 @@ function fillSourceBookmarkId(source, callback) {
             callback(source);
           });
         });
-      } else {
-        callback(source);
       }
     });
   } else {
