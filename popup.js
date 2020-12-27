@@ -21,6 +21,14 @@ function getRemoveConfirmHandler(source) {
   }
 }
 
+function refreshSources() {
+  loadSources((sources) => {
+    sourcesCache = sources;
+    displayExistingSources();
+  });
+
+}
+
 function displayExistingSources() {
   
   var sourcesElement = document.getElementById('existingSources');
@@ -47,10 +55,7 @@ document.addEventListener('DOMContentLoaded', function() {
   var addButton = document.getElementById('addSource');
   var urlInput = document.getElementById('urlInput');
 
-  loadSources((sources) => {
-    sourcesCache = sources;
-    displayExistingSources();
-  });
+  refreshSources();
 
   function addSource() {
     var url = urlInput.value;
@@ -58,16 +63,22 @@ document.addEventListener('DOMContentLoaded', function() {
       var tempTitle = url.split('/').pop();
       var newSource = {'title': tempTitle, 'url': url};
       sourcesCache.push(newSource);
-      urlInput.value = '';
       displayExistingSources();
-      getJson(newSource.url, (json) => {
-        newSource['title'] = json.name;
-        synchronizeBookmarkSource(json);
-        saveSources(sourcesCache);
-        displayExistingSources();
-      });
+      urlInput.value = '';
+
+      createBookmarksFromSource(newSource, refreshSources);
     }
   }
 
+  function refreshAll() {
+    console.log("refreshAll!");
+    loadSources((sources) => {
+      for (source of sources) {
+        createBookmarksFromSource(source);
+      }
+    });
+  }
+
   addButton.addEventListener('click', addSource);
+  document.getElementById('refreshAll').addEventListener('click', refreshAll);
 });

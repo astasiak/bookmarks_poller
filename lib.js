@@ -11,38 +11,91 @@ function getJson(url, callback) {
   xmlHttp.send(null);
 }
 
-function synchronizeBookmark(bookmark, parentId) {
+function createBookmark(bookmark, parentId) {
   if (bookmark.url) {  
     chrome.bookmarks.create({'parentId': parentId, 'title': bookmark.name, 'url': bookmark.url});
   } else if (bookmark.folder) {
     chrome.bookmarks.create({'parentId': parentId, 'title': bookmark.name}, (bookmarkTreeNode) => {
       for (var i = 0; i < bookmark.folder.length; i++) {
-        synchronizeBookmark(bookmark.folder[i], bookmarkTreeNode.id);
+        createBookmark(bookmark.folder[i], bookmarkTreeNode.id);
       }
     });
   }
 }
-  
-function synchronizeBookmarkSource(response) {
-  var managedBookmarks = response['bookmarks'];
-  chrome.bookmarks.getSubTree("1", (bar) => {
-    var existingBookmarks = new Map(bar[0].children.map((bm) => [bm.title, bm.id]));
-    for (var i = 0; i < managedBookmarks.length; i++) {
-      var bookmarkToAdd = managedBookmarks[i];
-      if (existingBookmarks.has(bookmarkToAdd.name)) {
-        chrome.bookmarks.removeTree(existingBookmarks.get(bookmarkToAdd.name));
+
+function fillSourceBookmarkId(source, callback) {
+  function createBookmarkFolder(callback) {
+    chrome.bookmarks.create({'parentId': '1', 'title': source.title}, (bookmarkTreeNode) => {
+      callback(bookmarkTreeNode.id);
+    });
+  }
+  if (source.bookmarkId) {
+    chrome.bookmarks.get(source.bookmarkId, (bookmark) => {
+      if (!bookmark) {
+        var oldBookmarkId = source.bookmarkId;
+        createBookmarkFolder((bookmarkId) => {
+          source.bookmarkId = bookmarkId;
+          updateSource(oldBookmarkId, source, () => {
+            callback(source);
+          });
+        });
+      } else {
+        callback(source);
       }
-      synchronizeBookmark(bookmarkToAdd, "1");
-    }
+    });
+  } else {
+    createBookmarkFolder((bookmarkId) => {
+      source.bookmarkId = bookmarkId;
+      insertSource(source, () => {
+        callback(source);
+      });
+    });
+  }
+}
+
+function createBookmarksFromSource(source, callback) {
+  getJson(source.url, (sourceData) => {
+    source.title = sourceData.name;
+    fillSourceBookmarkId(source, (source) => {
+      chrome.bookmarks.getSubTree(source.bookmarkId, (bookmarkTreeNode) => {
+        for (existingBookmark of bookmarkTreeNode[0].children) {
+          chrome.bookmarks.removeTree(existingBookmark.id);
+        }
+        if (sourceData.folder) {
+          for (newBookmark of sourceData.folder) {
+            createBookmark(newBookmark, source.bookmarkId);
+          }
+        }
+        if (callback) {
+          callback();
+        }
+      });
+    });
   });
 }
 
 function loadSources(callback) {
-  chrome.storage.sync.get(['bookmarkSources'], function(result) {
-    callback(result['bookmarkSources']);
+  chrome.storage.sync.get(['bookmarkSources'], function(storedValue) {
+    var result = storedValue['bookmarkSources'] || [];
+    callback(result);
   });
 }
 
-function saveSources(sources) {
-  chrome.storage.sync.set({'bookmarkSources': sources});
+function saveSources(sources, callback) {
+  chrome.storage.sync.set({'bookmarkSources': sources}, callback);
+}
+
+function updateSource(sourceId, newSource, callback) {
+  loadSources((sources) => {
+    var index = sources.findIndex((source) => source.bookmarkId == sourceId);
+    sources[index] = newSource;
+    saveSources(sources, callback);
+  });
+}
+
+function insertSource(newSource, callback) {
+  loadSources((sources) => {
+    sources.push(newSource);
+    saveSources(sources, callback);
+  });
 }
