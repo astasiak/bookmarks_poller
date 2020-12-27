@@ -17,6 +17,9 @@ function getRemoveConfirmHandler(source) {
       return item !== source
     });
     saveSources(sourcesCache);
+    if (source.bookmarkId) {
+      removeBookmark(source.bookmarkId);
+    }
     displayExistingSources();
   }
 }

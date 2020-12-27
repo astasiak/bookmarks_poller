@@ -42,6 +42,10 @@ function createBookmark(bookmark, parentId) {
   }
 }
 
+function removeBookmark(bookmarkId) {
+  chrome.bookmarks.removeTree(bookmarkId);
+}
+
 function fillSourceBookmarkId(source, callback) {
   function createBookmarkFolder(callback) {
     chrome.bookmarks.create({'parentId': '1', 'title': source.title}, (bookmarkTreeNode) => {
