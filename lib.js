@@ -1,10 +1,18 @@
 
-function getJson(url, callback) {
+function getJson(url, callback, handleError) {
   var xmlHttp = new XMLHttpRequest();
   xmlHttp.onreadystatechange = function() {
-    if (xmlHttp.readyState == 4 && xmlHttp.status == 200) {
-      var json = JSON.parse(xmlHttp.responseText);
-      callback(json);
+    if (xmlHttp.readyState == 4) {
+      if (xmlHttp.status == 200) {
+        try {
+          var json = JSON.parse(xmlHttp.responseText);
+        } catch(error) {
+          handleError();
+        }
+        callback(json);
+      } else {
+        handleError();
+      }
     }
   };
   xmlHttp.open("GET", url, true);
@@ -47,9 +55,12 @@ function removeBookmark(bookmarkId) {
 }
 
 function fillSourceBookmarkId(source, callback) {
-  function createBookmarkFolder(callback) {
+  function createBookmarkFolderAndCallBack() {
     chrome.bookmarks.create({'parentId': '1', 'title': source.title}, (bookmarkTreeNode) => {
-      callback(bookmarkTreeNode.id);
+      source.bookmarkId = bookmarkTreeNode.id;
+      upsertSource(source, () => {
+        callback(source);
+      });
     });
   }
   if (source.bookmarkId) {
@@ -57,28 +68,26 @@ function fillSourceBookmarkId(source, callback) {
       if (bookmarkFound) {
         callback(source);
       } else {
-        var oldBookmarkId = source.bookmarkId;
-        createBookmarkFolder((bookmarkId) => {
-          source.bookmarkId = bookmarkId;
-          updateSource(oldBookmarkId, source, () => {
-            callback(source);
-          });
-        });
+        createBookmarkFolderAndCallBack();
       }
     });
   } else {
-    createBookmarkFolder((bookmarkId) => {
-      source.bookmarkId = bookmarkId;
-      insertSource(source, () => {
-        callback(source);
-      });
-    });
+    createBookmarkFolderAndCallBack();
   }
 }
 
 function createBookmarksFromSource(source, callback) {
+  function markError() {
+    source.error = true;
+    upsertSource(source, callback);
+  }
   getJson(source.url, (sourceData) => {
+    if (!sourceData || !sourceData.name) {
+      markError();
+      return;
+    }
     source.title = sourceData.name;
+    source.error = false;
     fillSourceBookmarkId(source, (source) => {
       chrome.bookmarks.getSubTree(source.bookmarkId, (bookmarkTreeNode) => {
         for (existingBookmark of bookmarkTreeNode[0].children) {
@@ -94,6 +103,8 @@ function createBookmarksFromSource(source, callback) {
         }
       });
     });
+  }, () => {
+    markError();
   });
 }
 
@@ -108,17 +119,19 @@ function saveSources(sources, callback) {
   chrome.storage.sync.set({'bookmarkSources': sources}, callback);
 }
 
-function updateSource(sourceId, newSource, callback) {
+function upsertSource(source, callback) {
   loadSources((sources) => {
-    var index = sources.findIndex((source) => source.bookmarkId == sourceId);
-    sources[index] = newSource;
-    saveSources(sources, callback);
-  });
-}
-
-function insertSource(newSource, callback) {
-  loadSources((sources) => {
-    sources.push(newSource);
-    saveSources(sources, callback);
+    var index = sources.findIndex((s) => s.id == source.id);
+    if (!source.id || index == -1) {
+      source.id = Date.now();
+      sources.push(source);
+    } else {
+      sources[index] = source;
+    }
+    saveSources(sources, () => {
+      if (callback) {
+        callback(source);
+      }
+    });
   });
 }

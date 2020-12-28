@@ -1,5 +1,5 @@
 chrome.runtime.onInstalled.addListener(function () {
-  //chrome.alarms.create({periodInMinutes: 1});
+  chrome.alarms.create({periodInMinutes: 0.5});
 });
 chrome.alarms.onAlarm.addListener(function () {
   console.log('Hello Alarms!');

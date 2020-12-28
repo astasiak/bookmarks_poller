@@ -43,10 +43,11 @@ function displayExistingSources() {
     var source = sourcesCache[i];
     var div = document.createElement("div");
     div.classList.add("source")
+    var errorClass = source.error ? 'errorShow' : 'errorHide';
     div.innerHTML = `
         <button type="button" class="sourceRemove">delete</button>
         <button type="button" class="sourceRemoveConfirm hidden">confirm?</button>
-        <div class="sourceTitle">${source.title}</div>
+        <div class="sourceTitle"><span class="${errorClass}">⚠</span>${source.title}</div>
         <div class="sourceLink" title="${source.url}">${source.url}</div>`;
     div.getElementsByClassName('sourceRemove')[0].addEventListener('click', getRemoveHandler(div));
     div.getElementsByClassName('sourceRemoveConfirm')[0].addEventListener('click', getRemoveConfirmHandler(source));
@@ -65,19 +66,18 @@ document.addEventListener('DOMContentLoaded', function() {
     if (url) {
       var tempTitle = url.split('/').pop();
       var newSource = {'title': tempTitle, 'url': url};
-      sourcesCache.push(newSource);
-      displayExistingSources();
       urlInput.value = '';
-
-      createBookmarksFromSource(newSource, refreshSources);
+      upsertSource(newSource, (insertedSource) => {
+        refreshSources();
+        createBookmarksFromSource(insertedSource, refreshSources);
+      });
     }
   }
 
   function refreshAll() {
-    console.log("refreshAll!");
     loadSources((sources) => {
       for (source of sources) {
-        createBookmarksFromSource(source);
+        createBookmarksFromSource(source, refreshSources);
       }
     });
   }

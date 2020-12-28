@@ -10,3 +10,7 @@
 
 .sourceTitle, .sourceLink { display: inline-block }
 .sourcesMessage { color: #999; padding-left: 85px; font-style: italic; }
+
+.errorShow { color: #f00; margin-right: 5px; }
+.errorHide { display: none; }
+
