@@ -74,14 +74,5 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 
-  function refreshAll() {
-    loadSources((sources) => {
-      for (source of sources) {
-        createBookmarksFromSource(source, refreshSources);
-      }
-    });
-  }
-
   addButton.addEventListener('click', addSource);
-  document.getElementById('refreshAll').addEventListener('click', refreshAll);
 });
